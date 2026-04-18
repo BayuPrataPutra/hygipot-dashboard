@@ -1,0 +1,8 @@
+{
+  "name": "Hygipot",
+  "short_name": "Hygipot",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#22c55e"
+}
