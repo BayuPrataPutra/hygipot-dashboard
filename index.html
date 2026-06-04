@@ -5,186 +5,183 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <link rel="stylesheet" href="style.css" />
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
     <title>Hygipot</title>
   </head>
 
-  <body class="bg-slate-900 text-white">
-    <div class="max-w-md mx-auto p-4">
-      <h1 class="text-2xl font-bold text-center mb-4">🌱 Hygipot</h1>
+  <body id="body" class="transition-all dark">
+    <div class="max-w-6xl mx-auto p-4 space-y-6">
+      <!-- HEADER -->
+      <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold title-text">Hygipot</h1>
 
-      <!-- SENSOR -->
-      <div class="bg-slate-800 p-4 rounded-xl mb-4 space-y-1">
-        <p>Suhu: <span id="temp">-</span></p>
-        <p>Kelembapan: <span id="hum">-</span></p>
-        <p>Soil: <span id="soil">-</span></p>
-        <p>Water: <span id="water">-</span></p>
-        <p>Lux: <span id="lux">-</span></p>
-      </div>
+        <div class="flex items-center gap-4">
+          <!-- MQTT STATUS -->
+          <div
+            id="mqttStatus"
+            class="px-3 py-1 rounded-full text-sm font-semibold bg-red-500 text-white"
+          >
+            🔴 MQTT Offline
+          </div>
+          <div
+            id="espStatus"
+            class="px-3 py-1 rounded-full text-sm font-semibold bg-red-500 text-white"
+          >
+            🔴 ESP32 Offline
+          </div>
 
-      <!-- CONTROL -->
-      <div class="bg-slate-800 p-4 rounded-xl mb-4">
-        <div class="grid grid-cols-2 gap-2">
-          <button
-            onclick="send(event, 'pump_on')"
-            class="bg-green-500 p-2 rounded"
-          >
-            Pump ON
-          </button>
-          <button
-            onclick="send(event, 'pump_off')"
-            class="bg-red-500 p-2 rounded"
-          >
-            Pump OFF
-          </button>
-          <button
-            onclick="send(event, 'grow_on')"
-            class="bg-yellow-500 p-2 rounded"
-          >
-            Grow ON
-          </button>
-          <button
-            onclick="send(event, 'grow_off')"
-            class="bg-gray-500 p-2 rounded"
-          >
-            Grow OFF
-          </button>
-          <button
-            onclick="send(event, 'white_on')"
-            class="bg-blue-500 p-2 rounded"
-          >
-            White ON
-          </button>
-          <button
-            onclick="send(event, 'white_off')"
-            class="bg-gray-500 p-2 rounded"
-          >
-            White OFF
-          </button>
+          <div class="text-right">
+            <div id="clock" class="text-2xl font-bold"></div>
+            <div id="date" class="text-sm opacity-70"></div>
+          </div>
+
+          <button onclick="toggleTheme()" id="themeBtn">☀️</button>
         </div>
       </div>
 
-      <!-- CAMERA -->
-      <div class="bg-slate-800 p-4 rounded-xl mb-4">
-        <button
-          onclick="capture()"
-          class="bg-purple-500 p-2 rounded w-full mb-2"
-        >
-          📸 Ambil Gambar
-        </button>
+      <!-- GRID -->
+      <div class="grid md:grid-cols-2 gap-4">
+        <!-- SENSOR -->
+        <div class="card p-4 rounded-xl space-y-4">
+          <h2>📊 Sensor</h2>
 
-        <p id="loading" class="text-center text-sm text-gray-400 hidden">
-          Processing...
-        </p>
+          <div>
+            <span>Suhu</span>
+            <span id="temp"></span>
+            <div class="bar-bg"><div id="tempBar" class="bar"></div></div>
+          </div>
 
-        <img id="img" class="mt-3 rounded hidden border border-gray-700" />
-      </div>
+          <div>
+            <span>Humidity</span>
+            <span id="hum"></span>
+            <div class="bar-bg"><div id="humBar" class="bar"></div></div>
+          </div>
 
-      <!-- AI -->
-      <div class="bg-slate-800 p-4 rounded-xl">
-        <p>Prediksi: <span id="prediction">-</span></p>
-        <p>Confidence: <span id="confidence">-</span></p>
+          <div>
+            <span>Lux</span>
+            <span id="lux"></span>
+            <div class="bar-bg"><div id="luxBar" class="bar"></div></div>
+          </div>
+
+          <div>
+            <span>Soil</span>
+            <span id="soil"></span>
+            <div class="bar-bg"><div id="soilBar" class="bar"></div></div>
+          </div>
+
+          <div>
+            <span>Water</span>
+            <span id="water"></span>
+            <div class="bar-bg"><div id="waterBar" class="bar"></div></div>
+          </div>
+        </div>
+
+        <!-- CONTROL -->
+        <div class="card p-4 rounded-xl space-y-4">
+          <h2>🎛️ Control</h2>
+
+          <div class="flex justify-between">
+            Pompa
+            <label class="switch">
+              <input type="checkbox" id="pump" onchange="toggle('pump')" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="flex justify-between">
+            Grow
+            <label class="switch">
+              <input type="checkbox" id="grow" onchange="toggle('grow')" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="flex justify-between">
+            White
+            <label class="switch">
+              <input type="checkbox" id="white" onchange="toggle('white')" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- SCHEDULE -->
+        <div class="card p-4 rounded-xl space-y-3 md:col-span-2">
+          <h2>⏰ Jadwal Penyiraman</h2>
+
+          <div class="flex gap-2">
+            <input
+              type="time"
+              id="time"
+              class="p-2 rounded w-full text-black"
+            />
+            <button onclick="addSchedule()" class="btn">+</button>
+          </div>
+
+          <div id="scheduleList"></div>
+        </div>
+
+        <!-- CAMERA -->
+        <div class="card p-4 rounded-xl">
+          <h2 class="mb-3">📸 Kamera</h2>
+
+          <div class="flex flex-col md:flex-row gap-4 items-start">
+            <!-- PREVIEW -->
+            <div
+              class="w-full md:w-1/2 h-48 border-2 border-dashed rounded-lg flex items-center justify-center overflow-hidden"
+            >
+              <img id="img" class="w-full h-full object-cover hidden" />
+              <span id="placeholder" class="opacity-50">Preview Gambar</span>
+            </div>
+
+            <!-- CONTROL SIDE -->
+            <div class="w-full md:w-1/2 flex flex-col gap-3">
+              <button onclick="capture()" class="btn w-full">
+                📸 Ambil Gambar
+              </button>
+
+              <p class="text-sm opacity-70">
+                Terakhir diambil:
+                <span id="lastCapture">-</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI -->
+        <div class="card p-4 rounded-xl">
+          <h2>🧠 AI</h2>
+
+          <p id="prediction">-</p>
+          <div class="bar-bg"><div id="confBar" class="bar"></div></div>
+          <p id="confidence"></p>
+        </div>
+
+        <!-- DEBUG LOG -->
+        <div class="card p-4 rounded-xl md:col-span-2">
+          <div class="flex justify-between items-center mb-3">
+            <h2>🪲 Debug Log</h2>
+            <button onclick="clearDebug()" class="btn text-xs py-1 px-3">
+              Clear
+            </button>
+          </div>
+          <div
+            id="debugBox"
+            class="font-mono text-xs rounded-lg p-3 h-56 overflow-y-auto"
+            style="
+              background: #0d1117;
+              color: #58d68d;
+              border: 1px solid #2d3748;
+            "
+          ></div>
+        </div>
       </div>
     </div>
 
-    <script>
-      const client = mqtt.connect("wss://broker.hivemq.com:8884/mqtt");
-
-      // ===== LOAD DATA SAAT REFRESH =====
-      window.onload = () => {
-        const lastImage = localStorage.getItem("lastImage");
-        const lastPrediction = localStorage.getItem("lastPrediction");
-        const lastConfidence = localStorage.getItem("lastConfidence");
-
-        if (lastImage) {
-          const img = document.getElementById("img");
-          img.src = lastImage;
-          img.classList.remove("hidden");
-        }
-
-        if (lastPrediction) {
-          document.getElementById("prediction").innerText = lastPrediction;
-        }
-
-        if (lastConfidence) {
-          document.getElementById("confidence").innerText =
-            (parseFloat(lastConfidence) * 100).toFixed(2) + " %";
-        }
-      };
-
-      // ===== MQTT =====
-      client.on("connect", () => {
-        console.log("MQTT Connected");
-
-        client.subscribe("hygipot/data");
-        client.subscribe("hygipot/image");
-        client.subscribe("hygipot/ai");
-      });
-
-      client.on("message", (topic, message) => {
-        // SENSOR
-        if (topic === "hygipot/data") {
-          let data = JSON.parse(message.toString());
-
-          document.getElementById("temp").innerText = data.temp + " °C";
-          document.getElementById("hum").innerText = data.hum + " %";
-          document.getElementById("soil").innerText = data.soil;
-          document.getElementById("water").innerText = data.water;
-          document.getElementById("lux").innerText = data.lux + " lux";
-        }
-
-        // IMAGE
-        if (topic === "hygipot/image") {
-          const url = message.toString();
-
-          const img = document.getElementById("img");
-          const loading = document.getElementById("loading");
-
-          img.src = url;
-          img.classList.remove("hidden");
-
-          loading.innerText = "Analisis AI...";
-
-          // 💾 SIMPAN
-          localStorage.setItem("lastImage", url);
-        }
-
-        // AI
-        if (topic === "hygipot/ai") {
-          const data = JSON.parse(message.toString());
-
-          document.getElementById("prediction").innerText = data.prediction;
-          document.getElementById("confidence").innerText =
-            (data.confidence * 100).toFixed(2) + " %";
-
-          document.getElementById("loading").classList.add("hidden");
-
-          // 💾 SIMPAN
-          localStorage.setItem("lastPrediction", data.prediction);
-          localStorage.setItem("lastConfidence", data.confidence);
-        }
-      });
-
-      // ===== CONTROL =====
-      function send(e, msg) {
-        client.publish("hygipot/control", msg);
-
-        let btn = e.target;
-        btn.classList.add("scale-90");
-
-        setTimeout(() => btn.classList.remove("scale-90"), 150);
-      }
-
-      // ===== CAPTURE =====
-      function capture() {
-        const loading = document.getElementById("loading");
-
-        loading.innerText = "Mengambil gambar...";
-        loading.classList.remove("hidden");
-
-        client.publish("hygipot/control", "capture");
-      }
-    </script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>
