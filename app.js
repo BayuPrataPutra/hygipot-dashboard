@@ -39,7 +39,6 @@ window.onload = () => {
 
   renderSchedule();
 
-  // ===== LOAD IMAGE =====
   const lastImg = localStorage.getItem("lastImage");
   if (lastImg) {
     img.src = lastImg;
@@ -47,11 +46,9 @@ window.onload = () => {
     placeholder.classList.add("hidden");
   }
 
-  // ===== LOAD TIME =====
   const lastTime = localStorage.getItem("lastCapture");
   if (lastTime) lastCapture.innerText = lastTime;
 
-  // ===== LOAD AI =====
   const pred = localStorage.getItem("lastPrediction");
   const conf = localStorage.getItem("lastConfidence");
 
@@ -83,7 +80,34 @@ client.on("connect", () => {
   client.subscribe("hygipot/image");
   client.subscribe("hygipot/ai");
   client.subscribe("hygipot/debug");
+  client.subscribe("hygipot/actuators");
 });
+
+let isManualControl = false;
+let manualTimeout = null;
+
+function toggle(type) {
+  let state = document.getElementById(type).checked;
+  let msg = type + "_" + (state ? "on" : "off");
+  console.log("Sending:", msg);
+
+  isManualControl = true;
+  clearTimeout(manualTimeout);
+  manualTimeout = setTimeout(() => {
+    isManualControl = false;
+  }, 10000);
+
+  client.publish("hygipot/control", msg);
+}
+
+// FIX: helper untuk parse boolean dari Arduino
+// Arduino bisa kirim: true/false (boolean JSON), 1/0 (integer), "true"/"false" (string)
+function parseBool(val) {
+  if (typeof val === "boolean") return val;
+  if (typeof val === "number") return val === 1;
+  if (typeof val === "string") return val === "true" || val === "1";
+  return false;
+}
 
 client.on("message", (topic, message) => {
   if (topic === "hygipot/data") {
@@ -97,12 +121,24 @@ client.on("message", (topic, message) => {
     updateBar("soil", d.soil, 4095);
     updateBar("water", d.water, 4095);
 
-    pump.checked = d.pump == 1;
-    grow.checked = d.grow == 1;
-    white.checked = d.white == 1;
+    // FIX: pakai parseBool agar handle semua format dari Arduino
+    if (!isManualControl) {
+      pump.checked = parseBool(d.pump);
+      grow.checked = parseBool(d.grow);
+      white.checked = parseBool(d.white);
+    }
   }
 
-  // ===== IMAGE =====
+  // FIX: subscribe hygipot/actuators untuk sync state setelah reconnect
+  if (topic === "hygipot/actuators") {
+    let d = JSON.parse(message.toString());
+    if (!isManualControl) {
+      pump.checked = parseBool(d.pump);
+      grow.checked = parseBool(d.grow);
+      white.checked = parseBool(d.white);
+    }
+  }
+
   if (topic === "hygipot/image") {
     let url = message.toString();
 
@@ -112,13 +148,11 @@ client.on("message", (topic, message) => {
 
     localStorage.setItem("lastImage", url);
 
-    // simpan waktu
     const now = new Date().toLocaleString("id-ID");
     lastCapture.innerText = now;
     localStorage.setItem("lastCapture", now);
   }
 
-  // ===== AI =====
   if (topic === "hygipot/ai") {
     let d = JSON.parse(message.toString());
 
@@ -136,11 +170,6 @@ client.on("message", (topic, message) => {
 });
 
 // ===== BAR =====
-// ===== KALIBRASI =====
-// Water level: 0% = 1400, 15% = 1551, 100% = 1975
-// Soil: kering = 853, basah = 1269
-// Humidity: koreksi offset dari sensor (80.2 -> 67, selisih ~13.2)
-
 function rawToPercent(val, min, max) {
   let p = ((val - min) / (max - min)) * 100;
   return Math.min(100, Math.max(0, p));
@@ -152,31 +181,25 @@ function updateBar(id, val, max) {
   let color;
 
   if (id === "water") {
-    // Kalibrasi water level
     p = rawToPercent(val, 1400, 1975);
     displayVal = p.toFixed(1) + "%";
-    color = p <= 15 ? "#ef4444" : "#22c55e"; // merah jika <=15%, hijau sisanya
+    color = p <= 15 ? "#ef4444" : "#22c55e";
   } else if (id === "soil") {
-    // kering = 3375 → 0%, basah = 1143 → 100%
     p = ((3375 - val) / (3375 - 1143)) * 100;
     p = Math.min(100, Math.max(0, p));
     displayVal = p.toFixed(1) + "%";
     color = p < 20 ? "#ef4444" : "#22c55e";
   } else if (id === "hum") {
-    // Kalibrasi humidity: koreksi offset sensor
-    // sensor baca 80.2 = aslinya 67, selisih = 13.2
     let corrected = val - 13.2;
     corrected = Math.min(100, Math.max(0, corrected));
     p = corrected;
     displayVal = corrected.toFixed(1) + "%";
     color = p < 30 ? "#ef4444" : p < 70 ? "#22c55e" : "#3b82f6";
   } else if (id === "lux") {
-    // Lux: 0-1000, merah jika terlalu gelap (<15%)
     p = Math.min(100, (val / 1000) * 100);
     displayVal = val + " lux";
     color = p <= 15 ? "#ef4444" : "#22c55e";
   } else if (id === "temp") {
-    // Suhu: sudah aman, tidak perlu kalibrasi
     p = Math.min(100, (val / 50) * 100);
     displayVal = val.toFixed(1) + " °C";
     color = p < 30 ? "#3b82f6" : p < 70 ? "#22c55e" : "#ef4444";
@@ -191,14 +214,6 @@ function updateBar(id, val, max) {
   let bar = document.getElementById(id + "Bar");
   bar.style.width = p + "%";
   bar.style.background = color;
-}
-
-// ===== CONTROL =====
-function toggle(type) {
-  let state = document.getElementById(type).checked;
-  let msg = type + "_" + (state ? "on" : "off");
-  console.log("Sending:", msg);
-  client.publish("hygipot/control", msg);
 }
 
 // ===== CAMERA =====
@@ -262,7 +277,6 @@ function deleteSchedule(i) {
 function saveSchedule() {
   localStorage.setItem("schedules", JSON.stringify(schedules));
   renderSchedule();
-
   client.publish("hygipot/schedules", JSON.stringify(schedules));
 }
 
@@ -311,20 +325,20 @@ function appendDebug(msg) {
   const box = document.getElementById("debugBox");
   const now = new Date().toLocaleTimeString("id-ID", { hour12: false });
 
-  let color = "#58D68D"; // hijau default
+  let color = "#58D68D";
   const lower = msg.toLowerCase();
   if (
     lower.includes("gagal") ||
     lower.includes("failed") ||
     lower.includes("error")
   ) {
-    color = "#E74C3C"; // merah
+    color = "#E74C3C";
   } else if (
     lower.includes("ok") ||
     lower.includes("connected") ||
     lower.includes("success")
   ) {
-    color = "#5DADE2"; // biru
+    color = "#5DADE2";
   }
 
   const line = document.createElement("div");
@@ -335,10 +349,8 @@ function appendDebug(msg) {
 
   box.appendChild(line);
 
-  // Batasi 200 baris
   while (box.children.length > 200) box.removeChild(box.firstChild);
 
-  // Auto scroll
   box.scrollTop = box.scrollHeight;
 }
 
