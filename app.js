@@ -75,7 +75,9 @@ client.on("connect", () => {
 
   mqttStatus.innerText = "🟢 MQTT Online";
   mqttStatus.className =
-    "px-3 py-1 rounded-full text-sm font-semibold bg-green-500 text-white";
+    "hidden md:block px-3 py-1 rounded-full text-sm font-semibold bg-green-500 text-white";
+  document.getElementById("mqttDot").className =
+    "block md:hidden w-3 h-3 rounded-full bg-green-500";
 
   client.subscribe("hygipot/data");
   client.subscribe("hygipot/image");
@@ -267,16 +269,43 @@ function saveSchedule() {
 setInterval(() => {
   if (Date.now() - lastESP32Seen < 15000) {
     espStatus.innerText = "🟢 ESP32 Online";
-
     espStatus.className =
-      "px-3 py-1 rounded-full text-sm font-semibold bg-green-500 text-white";
+      "hidden md:block px-3 py-1 rounded-full text-sm font-semibold bg-green-500 text-white";
+    document.getElementById("espDot").className =
+      "block md:hidden w-3 h-3 rounded-full bg-green-500";
   } else {
     espStatus.innerText = "🔴 ESP32 Offline";
-
     espStatus.className =
-      "px-3 py-1 rounded-full text-sm font-semibold bg-red-500 text-white";
+      "hidden md:block px-3 py-1 rounded-full text-sm font-semibold bg-red-500 text-white";
+    document.getElementById("espDot").className =
+      "block md:hidden w-3 h-3 rounded-full bg-red-500";
   }
 }, 1000);
+
+// ===== MQTT RECONNECT & ERROR =====
+client.on("reconnect", () => {
+  mqttStatus.innerText = "🟡 Reconnecting...";
+  mqttStatus.className =
+    "hidden md:block px-3 py-1 rounded-full text-sm font-semibold bg-yellow-500 text-white";
+  document.getElementById("mqttDot").className =
+    "block md:hidden w-3 h-3 rounded-full bg-yellow-500";
+});
+
+client.on("disconnect", () => {
+  mqttStatus.innerText = "🔴 MQTT Offline";
+  mqttStatus.className =
+    "hidden md:block px-3 py-1 rounded-full text-sm font-semibold bg-red-500 text-white";
+  document.getElementById("mqttDot").className =
+    "block md:hidden w-3 h-3 rounded-full bg-red-500";
+});
+
+client.on("error", () => {
+  mqttStatus.innerText = "🔴 MQTT Error";
+  mqttStatus.className =
+    "hidden md:block px-3 py-1 rounded-full text-sm font-semibold bg-red-500 text-white";
+  document.getElementById("mqttDot").className =
+    "block md:hidden w-3 h-3 rounded-full bg-red-500";
+});
 
 function appendDebug(msg) {
   const box = document.getElementById("debugBox");
