@@ -49,13 +49,30 @@ window.onload = () => {
   const lastTime = localStorage.getItem("lastCapture");
   if (lastTime) lastCapture.innerText = lastTime;
 
+  // GANTI dengan ini:
   const pred = localStorage.getItem("lastPrediction");
   const conf = localStorage.getItem("lastConfidence");
 
-  if (pred) prediction.innerText = pred;
-  if (conf) {
-    confidence.innerText = (conf * 100).toFixed(1) + "%";
-    confBar.style.width = conf * 100 + "%";
+  if (pred && conf) {
+    try {
+      let predictions = JSON.parse(pred);
+      if (Array.isArray(predictions) && predictions.length > 0) {
+        prediction.innerHTML = predictions
+          .map(
+            (p, i) =>
+              `<div>${i + 1}. ${p.class} (${(p.confidence * 100).toFixed(1)}%)</div>`,
+          )
+          .join("");
+        confidence.innerText =
+          (predictions[0].confidence * 100).toFixed(1) + "%";
+        confBar.style.width = predictions[0].confidence * 100 + "%";
+      }
+    } catch (e) {
+      // format lama, reset saja
+      localStorage.removeItem("lastPrediction");
+      localStorage.removeItem("lastConfidence");
+      prediction.innerText = "-";
+    }
   }
 };
 
@@ -164,6 +181,12 @@ client.on("message", (topic, message) => {
   if (topic === "hygipot/ai") {
     let d = JSON.parse(message.toString());
 
+    // Guard: tolak format lama {prediction, confidence}
+    if (!d.predictions) {
+      console.log("Format lama diterima, skip");
+      return;
+    }
+
     if (d.predictions && d.predictions.length > 0) {
       prediction.innerHTML = d.predictions
         .map(
@@ -172,20 +195,16 @@ client.on("message", (topic, message) => {
         )
         .join("");
 
-      // Confidence bar pakai yang tertinggi
       confidence.innerText =
         (d.predictions[0].confidence * 100).toFixed(1) + "%";
       confBar.style.width = d.predictions[0].confidence * 100 + "%";
 
-      localStorage.setItem("lastPrediction", d.predictions[0].class);
-      localStorage.setItem("lastConfidence", d.predictions[0].confidence);
+      localStorage.setItem("lastPrediction", JSON.stringify(d.predictions));
     } else {
       prediction.innerText = "Tidak terdeteksi";
       confidence.innerText = "0%";
       confBar.style.width = "0%";
     }
-
-    localStorage.setItem("lastPrediction", JSON.stringify(d.predictions || []));
   }
 
   if (topic === "hygipot/debug") {

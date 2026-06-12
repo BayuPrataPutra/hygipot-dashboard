@@ -68,25 +68,25 @@
           </div>
 
           <div>
-            <span>Humidity</span>
+            <span>Kelembapan</span>
             <span id="hum"></span>
             <div class="bar-bg"><div id="humBar" class="bar"></div></div>
           </div>
 
           <div>
-            <span>Lux</span>
+            <span>Cahaya</span>
             <span id="lux"></span>
             <div class="bar-bg"><div id="luxBar" class="bar"></div></div>
           </div>
 
           <div>
-            <span>Soil</span>
+            <span>Kelembapan Tanah</span>
             <span id="soil"></span>
             <div class="bar-bg"><div id="soilBar" class="bar"></div></div>
           </div>
 
           <div>
-            <span>Water</span>
+            <span>Ketinggian Air</span>
             <span id="water"></span>
             <div class="bar-bg"><div id="waterBar" class="bar"></div></div>
           </div>
@@ -94,7 +94,7 @@
 
         <!-- CONTROL -->
         <div class="card p-4 rounded-xl space-y-4">
-          <h2>🎛️ Control</h2>
+          <h2>🎛️ Kontrol</h2>
 
           <div class="flex justify-between">
             Pompa
@@ -105,7 +105,7 @@
           </div>
 
           <div class="flex justify-between">
-            Grow
+            LED Grow
             <label class="switch">
               <input type="checkbox" id="grow" onchange="toggle('grow')" />
               <span class="slider"></span>
@@ -113,7 +113,7 @@
           </div>
 
           <div class="flex justify-between">
-            White
+            LED Putih
             <label class="switch">
               <input type="checkbox" id="white" onchange="toggle('white')" />
               <span class="slider"></span>
@@ -166,20 +166,19 @@
         </div>
 
         <!-- AI -->
+        <!-- BARU -->
         <div class="card p-4 rounded-xl">
-          <h2>🧠 AI</h2>
+          <h2>Hasil Deteksi</h2>
 
-          <p id="prediction">-</p>
-          <div class="bar-bg"><div id="confBar" class="bar"></div></div>
-          <p id="confidence"></p>
+          <div id="prediction" class="space-y-1 mb-2">-</div>
         </div>
 
         <!-- DEBUG LOG -->
         <div class="card p-4 rounded-xl md:col-span-2">
           <div class="flex justify-between items-center mb-3">
-            <h2>🪲 Debug Log</h2>
+            <h2>Debug Log</h2>
             <button onclick="clearDebug()" class="btn text-xs py-1 px-3">
-              Clear
+              Bersihkan
             </button>
           </div>
           <div
