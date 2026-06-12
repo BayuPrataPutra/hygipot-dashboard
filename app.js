@@ -81,6 +81,14 @@ client.on("connect", () => {
   client.subscribe("hygipot/ai");
   client.subscribe("hygipot/debug");
   client.subscribe("hygipot/actuators");
+
+  if (schedules.length > 0) {
+    client.publish("hygipot/schedules", JSON.stringify(schedules), {
+      retain: true,
+      qos: 1,
+    });
+    console.log("Schedule dikirim ulang:", JSON.stringify(schedules));
+  }
 });
 
 let isManualControl = false;
@@ -277,7 +285,10 @@ function deleteSchedule(i) {
 function saveSchedule() {
   localStorage.setItem("schedules", JSON.stringify(schedules));
   renderSchedule();
-  client.publish("hygipot/schedules", JSON.stringify(schedules));
+  client.publish("hygipot/schedules", JSON.stringify(schedules), {
+    retain: true,
+    qos: 1,
+  });
 }
 
 setInterval(() => {
