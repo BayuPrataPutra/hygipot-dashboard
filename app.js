@@ -164,12 +164,28 @@ client.on("message", (topic, message) => {
   if (topic === "hygipot/ai") {
     let d = JSON.parse(message.toString());
 
-    prediction.innerText = d.prediction;
-    confidence.innerText = (d.confidence * 100).toFixed(1) + "%";
-    confBar.style.width = d.confidence * 100 + "%";
+    if (d.predictions && d.predictions.length > 0) {
+      prediction.innerHTML = d.predictions
+        .map(
+          (p, i) =>
+            `<div>${i + 1}. ${p.class} (${(p.confidence * 100).toFixed(1)}%)</div>`,
+        )
+        .join("");
 
-    localStorage.setItem("lastPrediction", d.prediction);
-    localStorage.setItem("lastConfidence", d.confidence);
+      // Confidence bar pakai yang tertinggi
+      confidence.innerText =
+        (d.predictions[0].confidence * 100).toFixed(1) + "%";
+      confBar.style.width = d.predictions[0].confidence * 100 + "%";
+
+      localStorage.setItem("lastPrediction", d.predictions[0].class);
+      localStorage.setItem("lastConfidence", d.predictions[0].confidence);
+    } else {
+      prediction.innerText = "Tidak terdeteksi";
+      confidence.innerText = "0%";
+      confBar.style.width = "0%";
+    }
+
+    localStorage.setItem("lastPrediction", JSON.stringify(d.predictions || []));
   }
 
   if (topic === "hygipot/debug") {
